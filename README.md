@@ -1,11 +1,24 @@
-# Network_Programming
-BIO - NIO - AIO - Netty
-
 NIO单线程模式会盯着ServerSocket上有没有Client连上来或者已有的Client有没有在往里写数据过来，发现一件事就处理一件事，Selector负责Client的连接跟连上来的Client的读写。连接还是建立在server上，selector负责读和写
 
 NIO所有的通道都是和ByteBuffer（内存中的一个字节数组）连在一起的，好多字节积累下来一起读，BIO是一个字节一个字节来读的，速度比较慢。Netty的ByteBuffer里面有一个读指针一个写指针，封装要好得多
-NIO需要定期轮询，看有没有人连接，AIO不需要，操作系统在监听，然后有人要连的时候通知selector大管家，线程不是越多越好，会增加线程切换的开销，要调试。这些IO模型底层都要通过操作系统处理
+NIO需要定期轮询，看有没有人连接，AIO不需要，操作系统在坚挺，然后有人要连的时候通知selector大管家，线程不是越多越好，会增加线程切换的开销，要调试。这些IO模型底层都要通过操作系统处理
 
 AIO主线程写好自己的代码，钩到操作系统的内核里头，什么时候一旦有人要连的时候就帮着执行Completed这段代码，一旦执行Completed，我又下一个钩子，钩到通道上，这通道要写的时候执行第二个CompletedHandler的completed（或failed）。不用轮询了，让操作系统帮忙。外层的CompletionHandler管的是连接，内层CompletionHandler管的是读写。netty跟AIO的写法差不多，但是对于ByteBuffer封装的更好
 
 AIO和NIO在Linux底层都是用epoll实现的，epoll是Unix底层编程的一个模型，Linux上是同一种模型实现的。AIO其实还多了一层封装，因为epoll本身就是轮询模型。所以Netty对NIO进行了封装，封装的API更像AIO，AIO的好处在于其API更好用。Windows上的AIO并不是轮询模型，而确实是系统的事件模型，所以在Windows上用NIO，他的效率应该比Linux上要高。Netty只关心在Linux上的实现，因此Netty只封装了NIO，没管AIO。Netty可以用来处理REST API
+
+主角Netty登场
+All I/O operations in Netty are asynchronous.
+
+Netty有两个LoopGroup（相当于线程池），一个是BossGroup，相当于selector大管家，负责连接；第二个是WorkerGroup，负责连接之后的IO处理
+
+Ajax连服务器的时候是异步，连了之后不管了，什么时候连上之后，回调写好的程序（netty相似的写法），但是一旦连接完成之后，网服务器写的时候可以是同步阻塞的，阻塞和非阻塞结合。一般没有异步阻塞的模型，那真是闲的没事儿了。Netty是异步非阻塞的，Java网络游戏服务端很多用Netty的，Accept建立连接和读写是两块内容，两块合在一起说的时候才搞出了个“异步阻塞”的说法。
+
+Netty为什么传输快
+
+Netty的传输快其实也是依赖了NIO的一个特性——零拷贝。我们知道，Java的内存有堆内存、栈内存和字符串常量池等等，其中堆内存是占用内存空间最大的一块，也是Java对象存放的地方，一般我们的数据如果需要从IO读取到堆内存，中间需要经过Socket缓冲区，也就是说一个数据会被拷贝两次才能到达他的的终点，如果数据量大，就会造成不必要的资源浪费。
+Netty针对这种情况，使用了NIO中的另一大特性——零拷贝，当他需要接收数据的时候，他会在堆内存之外开辟一块内存，数据就直接从IO读到了那块内存中去，在netty里面通过ByteBuf可以直接对这些数据进行直接操作，从而加快了传输速度。
+下两图就介绍了两种拷贝方式的区别，摘自Linux 中的零拷贝技术，第 1 部分 （https://www.jianshu.com/p/b9f3f6a16911）
+
+
+阿里京东的后台很多时候用到了网络底层协议，高薪必须知道这些。不能所有的都用http发后台互相之间的通讯不能都用http。http会增大网络开销，因为它建立在TCP协议之上
