@@ -10,6 +10,8 @@ AIO和NIO在Linux底层都是用epoll实现的，epoll是Unix底层编程的一�
 主角Netty登场
 All I/O operations in Netty are asynchronous.
 
+Netty使用场景：视频直播，嘀嘀打车，Google Map，QQ Online游戏等实时更新数据的应用。很多都需要长连接
+
 Netty有两个LoopGroup（相当于线程池），一个是BossGroup，相当于selector大管家，负责连接；第二个是WorkerGroup，负责连接之后的IO处理
 
 Ajax连服务器的时候是异步，连了之后不管了，什么时候连上之后，回调写好的程序（netty相似的写法），但是一旦连接完成之后，网服务器写的时候可以是同步阻塞的，阻塞和非阻塞结合。一般没有异步阻塞的模型，那真是闲的没事儿了。Netty是异步非阻塞的，Java网络游戏服务端很多用Netty的，Accept建立连接和读写是两块内容，两块合在一起说的时候才搞出了个“异步阻塞”的说法。
