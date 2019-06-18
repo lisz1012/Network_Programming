@@ -10,7 +10,7 @@ AIO和NIO在Linux底层都是用epoll实现的，epoll是Unix底层编程的一�
 主角Netty登场
 All I/O operations in Netty are asynchronous.
 
-Netty使用场景：视频直播，嘀嘀打车，Google Map，QQ Online游戏等实时更新数据的应用。很多都需要长连接
+Netty使用场景：视频直播，嘀嘀打车，Google Map，QQ Online游戏，手机持续的消息推送等实时更新数据的应用。很多都需要长连接
 
 Netty有两个LoopGroup（相当于线程池），一个是BossGroup，相当于selector大管家，负责连接；第二个是WorkerGroup，负责连接之后的IO处理
 
