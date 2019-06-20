@@ -1,8 +1,16 @@
 NIO单线程模式会盯着ServerSocket上有没有Client连上来或者已有的Client有没有在往里写数据过来，发现一件事就处理一件事，Selector负责Client的连接跟连上来的Client的读写。连接还是建立在server上，selector负责读和写
 
-NIO所有的通道都是和ByteBuffer（内存中的一个字节数组）连在一起的，好多字节积累下来一起读，BIO是一个字节一个字节来读的，速度比较慢。Netty的ByteBuffer里面有一个读指针一个写指针，封装要好得多
-NIO需要定期轮询，看有没有人连接，AIO不需要，操作系统在坚挺，然后有人要连的时候通知selector大管家，线程不是越多越好，会增加线程切换的开销，要调试。这些IO模型底层都要通过操作系统处理
+NIO所有的通道都是和ByteBuffer（内存中的一个字节数组）连在一起的，好多字节积累下来一起读，BIO是一个字节一个字节来读的，速度比较慢。Netty的ByteBuffer里面有一个读指针一个写指针，封装要好得多。这在NIO里面叫做Buffer。
+NIO还引入了Channel的概念，是对Socket的进一步抽象，数据通过Channel实现从一段流转到另一端
+NIO需要Selector (选择器或者多路复用器，想大管家一样管理所有的Channel) 定期轮询，看有没有人连接。NIO避免了BIO的三次握手机制，通过轮询和注册Channel的方式： Client端首先要把自己的Channel通道注册到多路复用器Selector上。Selector轮询所有注册的通道（Channel），通过各个通道的状态，执行相关的操作。Channel的状态有Connect连接，Accept阻塞，Read刻度，Write可写。Selector是NIO的核心概念
+NIO是同步非阻塞模型，因为selector会有while(true)轮询；非阻塞是说，通道只要就绪了，就从中获取数据了，并不是直接通过tcp/ip三次握手什么的建立连接传输数据。
+NIO的本质就是避免原始的TCP建立连接，使用三次握手的操作，减少连接的开销。Selector处理的Channel的数量没有上限，一个线程轮询，可以接入无数的客户端。Selector线程就类似一个管理者，管理了成千上万个管道，然后轮询到哪个管道的数据已经准备好，通知cpu执行IO的读或者写操作。轮询的时候通过一个key来标识Channel
+ByteBuffer — 缓冲区。不好使，每次读之前最好得flip，忘了的话结果不对或者抛出异常。
+Channel — 管道通道，对Socket的封装，直接挂到Selector，而且是个双向的。BIO的InputStream或OutputStream是单向的，要么只能读，要么只能写。Channel的读写都可以用这一根管道。服务端：ServerSocketChannel，客户端：SocketChannel，用户使用的都是它们的子类。
+NIO的麻烦之处在于程序员要自己去实现多路复用器，判断每个通道的状态，然后进行相应的各种读写操作，所以Netty诞生了，为了封装这种复杂性。
+Client端其实也有Selector做轮询，所以写两端双全工的NIO通信很麻烦
 
+AIO不需要轮询，操作系统在监听，然后有人要连的时候通知selector大管家，线程不是越多越好，会增加线程切换的开销，要调试。这些IO模型底层都要通过操作系统处理. AIO在读写Buffer的时候也是开启一个新线程不是同步的，同步的话，当前线程正在写而其他的请求过来的话会等待。
 AIO主线程写好自己的代码，钩到操作系统的内核里头，什么时候一旦有人要连的时候就帮着执行Completed这段代码，一旦执行Completed，我又下一个钩子，钩到通道上，这通道要写的时候执行第二个CompletedHandler的completed（或failed）。不用轮询了，让操作系统帮忙。外层的CompletionHandler管的是连接，内层CompletionHandler管的是读写。netty跟AIO的写法差不多，但是对于ByteBuffer封装的更好
 
 AIO和NIO在Linux底层都是用epoll实现的，epoll是Unix底层编程的一个模型，Linux上是同一种模型实现的。AIO其实还多了一层封装，因为epoll本身就是轮询模型。所以Netty对NIO进行了封装，封装的API更像AIO，AIO的好处在于其API更好用。Windows上的AIO并不是轮询模型，而确实是系统的事件模型，所以在Windows上用NIO，他的效率应该比Linux上要高。Netty只关心在Linux上的实现，因此Netty只封装了NIO，没管AIO。Netty可以用来处理REST API
@@ -10,12 +18,20 @@ AIO和NIO在Linux底层都是用epoll实现的，epoll是Unix底层编程的一�
 主角Netty登场
 All I/O operations in Netty are asynchronous.
 
+为什么选择Netty？简单！编码和优化都简单。API强大，功能好
+
 Netty使用场景：视频直播，嘀嘀打车，Google Map，QQ Online游戏，手机持续的消息推送，心跳检测等实时更新数据的应用。很多都需要长连接
 
 Netty有两个LoopGroup（相当于线程池），一个是BossGroup，相当于selector大管家，负责连接；第二个是WorkerGroup，负责连接之后的IO处理
 
 Ajax连服务器的时候是异步，连了之后不管了，什么时候连上之后，回调写好的程序（netty相似的写法），但是一旦连接完成之后，网服务器写的时候可以是同步阻塞的，阻塞和非阻塞结合。一般没有异步阻塞的模型，那真是闲的没事儿了。Netty是异步非阻塞的，Java网络游戏服务端很多用Netty的，Accept建立连接和读写是两块内容，两块合在一起说的时候才搞出了个“异步阻塞”的说法。
 
+Netty实现通信的步骤
+创建两个NIO线程组（相当于线程池）：一个专门用于接收客户端连接，另一个进行网络通信的读写
+创建一个ServerBootStrap对象，配置Netty的一系列参数，例如接受传出数据的缓存大小等等
+创建一个实际处理数据的类ChannelInitializer（的子类）进行初始化的准备工作，比如设置接受传出数据的字符集，格式，已经实际处理数据的缓存大小等等
+绑定端口，执行同步阻塞方法等待服务器端启动即可
+（参考网站http://ifeve.com/netty5-user-guide/）
 Netty为什么传输快
 
 Netty的传输快其实也是依赖了NIO的一个特性——零拷贝。我们知道，Java的内存有堆内存、栈内存和字符串常量池等等，其中堆内存是占用内存空间最大的一块，也是Java对象存放的地方，一般我们的数据如果需要从IO读取到堆内存，中间需要经过Socket缓冲区，也就是说一个数据会被拷贝两次才能到达他的的终点，如果数据量大，就会造成不必要的资源浪费。
@@ -24,3 +40,5 @@ Netty针对这种情况，使用了NIO中的另一大特性——零拷贝，当
 
 
 阿里京东的后台很多时候用到了网络底层协议，高薪必须知道这些。不能所有的都用http发后台互相之间的通讯不能都用http。http会增大网络开销，因为它建立在TCP协议之上
+
+
