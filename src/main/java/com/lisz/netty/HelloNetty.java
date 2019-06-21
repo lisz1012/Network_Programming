@@ -51,7 +51,7 @@ class NettyServer {
 }
 
 class MyHandler extends ChannelInboundHandlerAdapter {
-	@Override
+	@Override									// Object，Netty甚至可以写出去一个序列化的对象
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		System.out.println("Server channel read");
 		ByteBuf buf = (ByteBuf) msg;

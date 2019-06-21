@@ -71,7 +71,7 @@ class ClientHandler extends ChannelInboundHandlerAdapter {
 			ByteBuf buf = (ByteBuf)msg;
 			System.out.println(buf.toString(CharsetUtil.UTF_8));
 		} finally {
-			ReferenceCountUtil.release(msg);
+			ReferenceCountUtil.release(msg);//读操作需要手动release释放ByteBuf对象，写操作不需要，里面帮忙实现了
 		}
 	}
 }
