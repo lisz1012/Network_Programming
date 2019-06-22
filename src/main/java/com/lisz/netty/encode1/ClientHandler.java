@@ -10,7 +10,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		System.out.println("Client received response: " + response);
 	}
 	
-	// Server关闭或者掉线或者断网
+	// Server关闭，关闭连接或者掉线或者断网
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		System.out.println("Server offline or network issues..");
