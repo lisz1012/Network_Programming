@@ -24,7 +24,7 @@ public class Client {
 		 });
 		ChannelFuture f = b.connect("127.0.0.1", 8765).sync();
 		/* 注意⚠️这里会出现粘包现象，在server端输出：111222333444555，5个线程一起往buffer里面写，最后被第一个执行的flush一起发送
-		 * 所以说异步（另起一个线程读写），才是粘包现象的根本原因！
+		 * 所以说异步（另起一个线程读写），才是粘包现象的根本原因！可以采取分包拆包的策略，或者间隔执行一下Thread.sleep(XXX);
 		 */
 		f.channel().writeAndFlush(Unpooled.copiedBuffer("111".getBytes()));
 		f.channel().writeAndFlush(Unpooled.copiedBuffer("222".getBytes()));
