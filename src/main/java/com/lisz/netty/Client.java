@@ -41,6 +41,8 @@ public class Client {
 			f.channel().closeFuture().sync();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} finally {
+			workers.shutdownGracefully();
 		}
 	}
 

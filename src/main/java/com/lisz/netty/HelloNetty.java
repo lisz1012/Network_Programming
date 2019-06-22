@@ -45,6 +45,9 @@ class NettyServer {
 			f.channel().closeFuture().sync();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} finally {
+			bossGroup.shutdownGracefully();
+			worderGroup.shutdownGracefully();
 		}
 	}
 	
