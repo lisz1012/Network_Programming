@@ -29,9 +29,9 @@ class NettyServer {
 
 	public void serverStart() {
 		EventLoopGroup bossGroup = new NioEventLoopGroup();
-		EventLoopGroup worderGroup = new NioEventLoopGroup();
+		EventLoopGroup workerGroup = new NioEventLoopGroup();
 		ServerBootstrap b = new ServerBootstrap();
-		b.group(bossGroup, worderGroup)							//第一个EventLoopGroup负责连接，第二个负责连接后的IO处理
+		b.group(bossGroup, workerGroup)							//第一个EventLoopGroup负责连接，第二个负责连接后的IO处理
 		 .channel(NioServerSocketChannel.class)					//建立完连接后的通道的类型
 		 .childHandler(new ChannelInitializer<SocketChannel>() {//每一个client连上来之后给他一个监听器，让他进行处理
 			@Override
@@ -47,7 +47,7 @@ class NettyServer {
 			e.printStackTrace();
 		} finally {
 			bossGroup.shutdownGracefully();
-			worderGroup.shutdownGracefully();
+			workerGroup.shutdownGracefully();
 		}
 	}
 	
