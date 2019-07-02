@@ -1,3 +1,9 @@
+/**
+ * 网络程序的烦点：异常的处理和正确的关闭。
+ * 关闭涉及到了线程池的正常结束。BIO是半双工
+ * 基本没人用，除了简单的小程序
+ */
+
 package com.lisz.bio;
 
 import java.net.Socket;
