@@ -1,3 +1,7 @@
+/**
+ * 观察者就是异步。所谓异步就是：当前线程提前设置好干什么的机器人扔在哪儿就去干别的事儿了
+ */
+
 package com.lisz.aio;
 
 import java.io.IOException;

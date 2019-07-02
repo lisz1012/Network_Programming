@@ -45,7 +45,7 @@ public class Server {
 		if (key.isAcceptable()) {
 			try {
 				ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
-				SocketChannel sc = ssc.accept(); // 是acceptable就把客人接到屋里来，这会新生成一个channel。对应BIO里的Socket
+				SocketChannel sc = ssc.accept(); // 是acceptable就把客人接到屋里来，这会新生成一个channel。对应BIO里的Socket。阻塞，但是确定有人连接了才会执行，所以很快就能返回
 				sc.configureBlocking(false);
 				sc.register(key.selector(), SelectionKey.OP_READ); // 在新生成的channel上，让大管家监听读取事件，然后每次轮询selector不只监听accept，也监听这里的read
 			} catch (IOException e) {
